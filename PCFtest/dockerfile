@@ -1,0 +1,3 @@
+From openjdk:8
+copy ./target/PCFtest-0.0.1-SNAPSHOT.jar PCFtest-0.0.1-SNAPSHOT.jar
+CMD ["java","-jar","PCFtest-0.0.1-SNAPSHOT.jar"]
