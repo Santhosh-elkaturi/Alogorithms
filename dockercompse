@@ -1,0 +1,64 @@
+version: '2'
+services:
+  local-master:
+    build:
+      context: .
+      dockerfile: etc/docker/sqlserver/master/Dockerfile
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+    mem_limit: 2G
+    ports:
+      - '1434:1433'
+
+  local-ckb:
+    build:
+      context: .
+      dockerfile: etc/docker/sqlserver/ckb/Dockerfile
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+    mem_limit: 2G
+    ports:
+      - '1435:1433' 
+  zookeeper:
+        image: docker-remote.registry.kroger.com/library/zookeeper:3.4.9
+        restart: always
+        hostname: zookeeper
+        ports:
+          - "2181:2181"
+        environment:
+          ZOO_MY_ID: 1
+          ZOO_PORT: 2181
+          ZOO_SERVERS: server.1=zookeeper:2888:3888
+          ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    build:
+      context: .
+      dockerfile: etc/docker/kafka/Dockerfile
+    hostname: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_BROKER_ID: 0
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=DEBUG,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper 
+	  
+  schemaregistry:
+    image: docker-remote.registry.kroger.com/confluentinc/cp-schema-registry:5.1.2
+    hostname: schemaregistry
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:19092
+      SCHEMA_REGISTRY_HOST_NAME: schemaregistry
+      SCHEMA_REGISTRY_LISTENERS: ht_tp://0.0.0.0:8081
+      SCHEMA_REGISTRY_AUTO_REGISTER_SCHEMAS: "true"
+    depends_on:
+      - zookeeper
+      - kafka 
+ 
